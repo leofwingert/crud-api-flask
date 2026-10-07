@@ -74,10 +74,6 @@ def internal_server_error(error):
 
 @app.route("/api/countries/sync", methods=["POST"])
 def sync_countries():
-    """
-    Consome os dados da API restcountries.com e armazena localmente no SQLite.
-    Trata falhas de comunicação com status 502/504 através de ExternalAPIError.
-    """
     result = sync_countries_to_db()
     return jsonify({
         "status": "success",
@@ -90,13 +86,6 @@ def sync_countries():
 # 1. READ ALL - Listar países locais com paginação opcional
 @app.route("/api/countries", methods=["GET"])
 def get_all_countries():
-    """
-    Retorna a lista de países armazenados no banco local.
-    Parâmetros opcionais:
-      - page (int, padrão 1)
-      - limit (int, padrão 50; se for 'all', retorna todos)
-      - search (string para filtrar por nome ou capital)
-    """
     page_param = request.args.get("page", 1)
     limit_param = request.args.get("limit", 50)
     search_param = request.args.get("search", "").strip()
@@ -104,7 +93,6 @@ def get_all_countries():
     conn = get_db()
     cursor = conn.cursor()
 
-    # Validação de paginação
     try:
         page = int(page_param)
         if page < 1:
@@ -169,7 +157,6 @@ def get_all_countries():
 # 2. READ ONE - Obter detalhes de um país por ID
 @app.route("/api/countries/<int:country_id>", methods=["GET"])
 def get_country_by_id(country_id):
-    """Retorna os dados de um país específico a partir do seu ID local."""
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM countries WHERE id = ?", (country_id,))
@@ -192,10 +179,6 @@ def get_country_by_id(country_id):
 # 3. CREATE - Cadastrar novo país
 @app.route("/api/countries", methods=["POST"])
 def create_country():
-    """
-    Cadastra um novo país no banco local.
-    Exige payload JSON com pelo menos 'name' e 'region'.
-    """
     if not request.is_json:
         return jsonify({
             "error": "Bad Request",
@@ -306,10 +289,6 @@ def create_country():
 # 4. UPDATE - Atualizar dados de um país
 @app.route("/api/countries/<int:country_id>", methods=["PUT", "PATCH"])
 def update_country(country_id):
-    """
-    Atualiza um país existente no banco de dados local.
-    Aceita atualização total ou parcial dos campos.
-    """
     if not request.is_json:
         return jsonify({
             "error": "Bad Request",
@@ -426,7 +405,6 @@ def update_country(country_id):
 # 5. DELETE - Remover um país do banco local
 @app.route("/api/countries/<int:country_id>", methods=["DELETE"])
 def delete_country(country_id):
-    """Remove um país específico do banco de dados local através do ID."""
     conn = get_db()
     cursor = conn.cursor()
 
@@ -454,13 +432,8 @@ def delete_country(country_id):
 # FILTRO 1: Filtrar por Região / Continente
 @app.route("/api/countries/filter/region", methods=["GET"])
 def filter_by_region():
-    """
-    Endpoint de Filtro 1: Retorna países pertencentes a uma região geográfica informada.
-    Parâmetro obrigatório via query string: 'region' (ex: ?region=Americas)
-    """
     region = request.args.get("region")
 
-    # Tratamento de parâmetro ausente ou em branco
     if region is None or not region.strip():
         return jsonify({
             "error": "Bad Request",
@@ -473,7 +446,6 @@ def filter_by_region():
     conn = get_db()
     cursor = conn.cursor()
 
-    # Busca insensível a maiúsculas/minúsculas
     cursor.execute(
         "SELECT * FROM countries WHERE LOWER(region) = LOWER(?) ORDER BY name ASC",
         (region,)
@@ -481,7 +453,6 @@ def filter_by_region():
     rows = cursor.fetchall()
     conn.close()
 
-    # Tratamento para registro não encontrado
     if not rows:
         return jsonify({
             "error": "Not Found",
@@ -503,17 +474,9 @@ def filter_by_region():
 # FILTRO 2: Filtrar por Faixa de População
 @app.route("/api/countries/filter/population", methods=["GET"])
 def filter_by_population():
-    """
-    Endpoint de Filtro 2: Retorna países dentro de uma faixa populacional específica.
-    Parâmetros via query string:
-      - min (int, opcional se max for fornecido)
-      - max (int, opcional se min for fornecido)
-    Exemplo: /api/countries/filter/population?min=10000000&max=50000000
-    """
     min_param = request.args.get("min")
     max_param = request.args.get("max")
 
-    # Tratamento de parâmetros ausentes
     if min_param is None and max_param is None:
         return jsonify({
             "error": "Bad Request",
@@ -524,7 +487,6 @@ def filter_by_population():
     min_val = None
     max_val = None
 
-    # Validação do parâmetro min
     if min_param is not None and min_param.strip() != "":
         try:
             min_val = int(min_param)
@@ -541,7 +503,6 @@ def filter_by_population():
                 "status_code": 400
             }), 400
 
-    # Validação do parâmetro max
     if max_param is not None and max_param.strip() != "":
         try:
             max_val = int(max_param)
@@ -558,7 +519,6 @@ def filter_by_population():
                 "status_code": 400
             }), 400
 
-    # Validação de coerência entre min e max
     if min_val is not None and max_val is not None and min_val > max_val:
         return jsonify({
             "error": "Bad Request",
@@ -586,7 +546,6 @@ def filter_by_population():
     rows = cursor.fetchall()
     conn.close()
 
-    # Tratamento para registro não encontrado
     if not rows:
         return jsonify({
             "error": "Not Found",
@@ -609,5 +568,4 @@ def filter_by_population():
 
 
 if __name__ == "__main__":
-    # Porta padrão 5000 em ambiente local
     app.run(host="0.0.0.0", port=5000, debug=True)

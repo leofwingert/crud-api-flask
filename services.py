@@ -7,8 +7,6 @@ DEFAULT_API_KEY = "rc_live_a530a34d4e4e450dbafc0239d5738c52"
 
 
 class ExternalAPIError(Exception):
-    """Exceção customizada para erros de comunicação com a API externa."""
-
     def __init__(self, message, status_code=502):
         super().__init__(message)
         self.message = message
@@ -16,10 +14,6 @@ class ExternalAPIError(Exception):
 
 
 def fetch_external_countries(api_url=None, api_key=None, timeout=15):
-    """
-    Consome os dados da API restcountries.com realizando paginação.
-    Lança ExternalAPIError em caso de falha de conexão, timeout ou resposta de erro.
-    """
     url = api_url or os.getenv("RESTCOUNTRIES_API_URL", DEFAULT_API_URL)
     token = api_key or os.getenv("RESTCOUNTRIES_API_KEY", DEFAULT_API_KEY)
 
